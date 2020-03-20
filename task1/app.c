@@ -4,22 +4,32 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+const char *data = "aaa";
+
 int main()
 {
     char buf[100];
-    int fd = open("/proc/csumdev", O_RDWR);
+    int fd;
 
-    write(fd, "abcddfdfd", 5);
+    puts("Test data: ");
+    puts(data);
 
-    lseek(fd, 0, SEEK_SET);
+    // write test data
+    fd = open("/dev/csumdev", O_RDWR);
+    write(fd, data, sizeof(data));
+    close(fd);
+
+    puts("device read:");
+    fd = open("/dev/csumdev", O_RDWR);
     read(fd, buf, 100);
     puts(buf);
+    close(fd);
 
-    lseek(fd, 0, SEEK_SET);
-    write(fd, "abc100", 5);
-
-    lseek(fd, 0, SEEK_SET);
+    puts("procfs read:");
+    fd = open("/proc/csumdev", O_RDWR);
     read(fd, buf, 100);
     puts(buf);
+    close(fd);
+
     return 0;
 }
