@@ -37,8 +37,6 @@ static ssize_t checksum_write(struct file *file, const char __user *ubuf,
         unsigned i;
 
         printk(KERN_DEBUG "CSUM: write handler called\n");
-        if (*ppos > 0)
-                return 0;
 
         buf = kmalloc(count, GFP_KERNEL);
         if (!buf)
@@ -49,12 +47,14 @@ static ssize_t checksum_write(struct file *file, const char __user *ubuf,
                 return -EFAULT;
         }
 
-        checksum = 0;
+        if (*ppos == 0)
+                checksum = 0;
+
         for (i = 0; i < count; i++)
-                checksum += buf[i];
+                checksum += *(uint8_t*)&buf[i];
 
         kfree(buf);
-        *ppos = i;
+        *ppos += i;
         return i;
 }
 
@@ -68,14 +68,14 @@ static ssize_t checksum_read(struct file *file, char __user *ubuf,
         if (*ppos > 0)
                 return 0;
 
-        len = snprintf(NULL, 0, "checksum: %d\n", checksum);
+        len = snprintf(NULL, 0, "checksum: %u\n", checksum);
         if (count < len + 1)
                 return 0;
         buf = kmalloc(len + 1, GFP_KERNEL);
         if (!buf)
                 return -ENOMEM;
 
-        len = sprintf(buf, "checksum: %d\n", checksum);
+        len = sprintf(buf, "checksum: %u\n", checksum);
         if (copy_to_user(ubuf, buf, len)) {
                 kfree(buf);
                 return -EFAULT;

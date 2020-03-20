@@ -3,6 +3,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <string.h>
 
 const char *data = "aaa";
 
@@ -16,7 +17,7 @@ int main()
 
     // write test data
     fd = open("/dev/csumdev", O_RDWR);
-    write(fd, data, sizeof(data));
+    write(fd, data, strlen(data));
     close(fd);
 
     puts("device read:");
