@@ -9,6 +9,8 @@
 #include <linux/fs.h>
 #include <linux/err.h>
 
+#include "csumdev.h"
+
 #define DEVICE_NAME "csumdev"
 #define CLASS_NAME  "csum"
 
@@ -33,7 +35,7 @@ static uint32_t checksum = 0;
 static ssize_t checksum_write(struct file *file, const char __user *ubuf,
                               size_t count, loff_t *ppos)
 {
-        char *buf;
+        unsigned char *buf;
         unsigned i;
 
         printk(KERN_DEBUG "CSUM: write handler called\n");
@@ -51,7 +53,7 @@ static ssize_t checksum_write(struct file *file, const char __user *ubuf,
                 checksum = 0;
 
         for (i = 0; i < count; i++)
-                checksum += *(uint8_t*)&buf[i];
+                checksum += buf[i];
 
         kfree(buf);
         *ppos += i;
@@ -86,11 +88,34 @@ static ssize_t checksum_read(struct file *file, char __user *ubuf,
         return len;
 }
 
+static long checksum_ioctl(struct file *file, unsigned int cmd,
+                           unsigned long arg)
+{
+        struct csum_arg_t ret;
+        unsigned len;
+
+        if (_IOC_TYPE(cmd) != CSUM_IOC_MAGIC)
+                return -ENOTTY;
+
+        switch (cmd) {
+        case CSUM_GET_STRING:
+                len = sprintf(ret.str, "checksum: %u\n", checksum);
+                if (copy_to_user((struct csum_arg_t __user *)arg, ret.str, len))
+                        return -EFAULT;
+                break;
+        default:
+                return -ENOTTY;
+        }
+
+        return 0;
+}
+
 static struct file_operations f_ops =
 {
-        .owner = THIS_MODULE,
-        .read  = checksum_read,
-        .write = checksum_write,
+        .owner          = THIS_MODULE,
+        .read           = checksum_read,
+        .write          = checksum_write,
+        .unlocked_ioctl = checksum_ioctl
 };
 
 static int __init checksum_init(void)
