@@ -70,14 +70,14 @@ static ssize_t checksum_read(struct file *file, char __user *ubuf,
         if (*ppos > 0)
                 return 0;
 
-        len = snprintf(NULL, 0, "checksum: %u\n", checksum);
+        len = snprintf(NULL, 0, "%u", checksum);
         if (count < len + 1)
                 return 0;
         buf = kmalloc(len + 1, GFP_KERNEL);
         if (!buf)
                 return -ENOMEM;
 
-        len = sprintf(buf, "checksum: %u\n", checksum);
+        len = sprintf(buf, "%u", checksum);
         if (copy_to_user(ubuf, buf, len)) {
                 kfree(buf);
                 return -EFAULT;
@@ -91,16 +91,12 @@ static ssize_t checksum_read(struct file *file, char __user *ubuf,
 static long checksum_ioctl(struct file *file, unsigned int cmd,
                            unsigned long arg)
 {
-        struct csum_arg_t ret;
-        unsigned len;
-
         if (_IOC_TYPE(cmd) != CSUM_IOC_MAGIC)
                 return -ENOTTY;
 
         switch (cmd) {
-        case CSUM_GET_STRING:
-                len = sprintf(ret.str, "checksum: %u\n", checksum);
-                if (copy_to_user((struct csum_arg_t __user *)arg, ret.str, len))
+        case CSUM_GET_VALUE:
+                if (put_user(checksum, (uint32_t __user *)arg))
                         return -EFAULT;
                 break;
         default:
@@ -141,7 +137,8 @@ static int __init checksum_init(void)
         }
 
         checksum_dev = device_create(checksum_class, NULL,
-                                MKDEV(dev_major, dev_minor), NULL, DEVICE_NAME);
+                                MKDEV(dev_major, dev_minor),
+                                NULL, DEVICE_NAME);
         if (IS_ERR(checksum_dev)) {
                 printk(KERN_WARNING "CSUM: can't create the device");
                 ret = PTR_ERR(checksum_dev);

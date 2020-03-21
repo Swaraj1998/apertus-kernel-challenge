@@ -4,8 +4,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
-#include <errno.h>
 #include <sys/ioctl.h>
+#include <inttypes.h>
 
 #include "csumdev.h"
 
@@ -13,37 +13,35 @@ const char *data = "a";
 
 int main()
 {
-    char buf[100];
+    char buf[16];
+    uint32_t val;
     int fd;
-    struct csum_arg_t ret;
 
-    puts("Test data: ");
-    puts(data);
-    puts("");
+    printf("Test data: %s\n", data);
 
     // write test data
     fd = open("/dev/csumdev", O_RDWR);
     write(fd, data, strlen(data));
     close(fd);
 
-    puts("device read:");
+    puts("\ndevice read:");
     fd = open("/dev/csumdev", O_RDWR);
-    read(fd, buf, 100);
-    puts(buf);
+    read(fd, buf, 16);
+    printf("checksum: %s\n", buf);
     close(fd);
 
-    puts("procfs read:");
+    puts("\nprocfs read:");
     fd = open("/proc/csumdev", O_RDWR);
-    read(fd, buf, 100);
-    puts(buf);
+    read(fd, buf, 16);
+    printf("checksum: %s\n", buf);
     close(fd);
 
-    puts("ioctl read:");
+    puts("\nioctl read:");
     fd = open("/dev/csumdev", O_RDWR);
-    if (ioctl(fd, CSUM_GET_STRING, &ret) < 0)
+    if (ioctl(fd, CSUM_GET_VALUE, &val) < 0)
             printf("ioctl read error\n");
     else
-            puts(ret.str);
+            printf("checksum: %u\n", val);
     close(fd);
 
     return 0;
